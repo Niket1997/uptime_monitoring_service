@@ -1,13 +1,14 @@
 package handler
 
 import (
-	"database/sql"
+	"fmt"
 	"net/http"
 	"ums/dbops"
 	"ums/platform"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
+	"github.com/jinzhu/gorm"
 )
 
 // FormInputURLStatus structure to get input from form
@@ -19,7 +20,7 @@ type FormInputURLStatus struct {
 }
 
 // GetURLStatus function to get the status of the URL
-func GetURLStatus(db *sql.DB) gin.HandlerFunc {
+func GetURLStatus(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestBody := FormInputURLStatus{}
 		err := c.ShouldBind(&requestBody)
@@ -36,7 +37,6 @@ func GetURLStatus(db *sql.DB) gin.HandlerFunc {
 					"status": "Error while generating UUID.",
 					"error":  err.Error(),
 				})
-				// apperrors.ReturnError("Error while generating UUID.", err)
 				return
 			}
 			status := platform.GetRequest(url, timeout)
@@ -59,7 +59,7 @@ func GetURLStatus(db *sql.DB) gin.HandlerFunc {
 						failureCount = 1
 					}
 					dataDB := dbops.DataInDB{
-						UUID:             id,
+						UUID:             fmt.Sprintf("%s", id),
 						URL:              url,
 						CrawlTimeout:     timeout,
 						Frequency:        frequency,
