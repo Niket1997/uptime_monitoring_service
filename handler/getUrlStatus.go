@@ -2,8 +2,8 @@ package handler
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
+	"ums/dbops"
 	"ums/platform"
 
 	"github.com/gin-gonic/gin"
@@ -16,10 +16,6 @@ type FormInputURLStatus struct {
 	CrawlTimeout     int    `form:"crawl_timeout" binding:"required"`
 	Frequency        int    `form:"frequency" binding:"required"`
 	FailureThreshold int    `form:"failure_threshold" binding:"required"`
-}
-
-func checkIfURLExistsInDb(db *sql.DB) {
-
 }
 
 // GetURLStatus function to get the status of the URL
@@ -36,20 +32,51 @@ func GetURLStatus(db *sql.DB) gin.HandlerFunc {
 			failureThreshold := requestBody.FailureThreshold
 			id, err := uuid.NewV1()
 			if err != nil {
-				ReturnError("Error while generating UUID.", err)
-				return
-			}
-			insert, err := db.Query("INSERT INTO ums VALUES ( 5, 'Mhataru' )")
-			if err != nil {
-				fmt.Println(err)
 				c.JSON(500, gin.H{
-					"status": "Error while inserting data into table.",
+					"status": "Error while generating UUID.",
 					"error":  err.Error(),
 				})
+				// apperrors.ReturnError("Error while generating UUID.", err)
+				return
 			}
-			defer insert.Close()
-
 			status := platform.GetRequest(url, timeout)
+
+			d, re := dbops.FetchURLInfo(db, url)
+			failureCount := 0
+			if status == "Inactive" && re == true {
+				failureCount = d.FailureCount + 1
+				err := dbops.UpdateFailureCount(db, url, failureCount)
+				if err != nil {
+					c.JSON(500, gin.H{
+						"status": "Error while updating data in database.",
+						"error":  err.Error(),
+					})
+				}
+			} else {
+
+				if re == false {
+					if status == "Inactive" {
+						failureCount = 1
+					}
+					dataDB := dbops.DataInDB{
+						UUID:             id,
+						URL:              url,
+						CrawlTimeout:     timeout,
+						Frequency:        frequency,
+						FailureThreshold: failureThreshold,
+						IsStatusChecking: "Active",
+						FailureCount:     failureCount,
+					}
+					err := dbops.InsertURLInfo(db, dataDB)
+					if err != nil {
+						c.JSON(500, gin.H{
+							"status": "Error while inserting data in database.",
+							"error":  err.Error(),
+						})
+					}
+				}
+			}
+
 			c.JSON(200, gin.H{
 				"id":                id,
 				"url":               url,
@@ -57,7 +84,7 @@ func GetURLStatus(db *sql.DB) gin.HandlerFunc {
 				"frequency":         frequency,
 				"failure_threshold": failureThreshold,
 				"status":            status,
-				"failure_count":     1,
+				"failure_count":     failureCount,
 			})
 
 		}

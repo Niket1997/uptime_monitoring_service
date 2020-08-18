@@ -16,7 +16,7 @@ func GetRequest(url string, timeout int) string {
 	_, err := client.Get(url)
 	if err != nil {
 		fmt.Println(err)
-		return "Inactive: " + err.Error()
+		return "Inactive"
 	}
 	return "Active"
 }
