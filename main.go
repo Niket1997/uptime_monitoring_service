@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"ums/apperrors"
 	"ums/dbops"
 	"ums/handler"
@@ -22,28 +23,21 @@ func main() {
 
 	db.DropTableIfExists(&dbops.DataInDB{})
 	db.Debug().AutoMigrate(&dbops.DataInDB{})
-	// id, _ := uuid.NewV1()
-	// entry := dbops.DataInDB{
-	// 	UUID:             fmt.Sprintf("%s", id),
-	// 	URL:              "https://google.com/",
-	// 	CrawlTimeout:     10,
-	// 	Frequency:        30,
-	// 	FailureThreshold: 10,
-	// 	IsStatusChecking: "Active",
-	// 	FailureCount:     1,
-	// }
 
-	// db.Create(&entry)
+	// ChannelMap variable to hold map of channels
+	channelMap := make(map[string]chan bool)
 
-	// te := dbops.TableExists(db)
-	// if te == 0 {
-	// 	dbops.CreateTable(db)
-	// } else {
-	// 	dbops.DropTable(db)
-	// 	dbops.CreateTable(db)
-	// }
+	// Lock variable
+	var lock = sync.RWMutex{}
+	// platform.LockTest(channelMap, &lock)
+	// fmt.Println(channelMap)
 
 	r := gin.Default()
-	r.GET("/url", handler.GetURLStatus(db))
+	r.POST("/url", handler.GetURLStatus(db, channelMap, &lock))
+	r.POST("/urls/:id/deactivate", handler.DeactivateURL(db, channelMap, &lock))
+	r.POST("/urls/:id/activate", handler.ActivateURL(db, channelMap, &lock))
+	r.DELETE("/urls/:id", handler.DeleteURL(db, channelMap, &lock))
+	r.PATCH("/urls/:id", handler.UpdateParams(db, channelMap, &lock))
+
 	r.Run()
 }

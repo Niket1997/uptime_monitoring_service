@@ -13,7 +13,7 @@ type DataInDB struct {
 	CrawlTimeout     int    `json:"crawl_timeout"`
 	Frequency        int    `json:"frequency"`
 	FailureThreshold int    `json:"failure_threshold"`
-	IsStatusChecking string `json:"is_status_checking"`
+	Status           string `json:"is_status_checking"`
 	FailureCount     int    `json:"failure_count"`
 }
 
@@ -66,15 +66,32 @@ type DataInDB struct {
 // 	dropTable.Close()
 // }
 
-// FetchURLInfo function to get the data from db if it exists in db
-func FetchURLInfo(db *gorm.DB, url string) (DataInDB, bool) {
+// FetchURLInfoBasedOnURL function to get the data from db if it exists in db
+func FetchURLInfoBasedOnURL(db *gorm.DB, url string) (DataInDB, int, error) {
 	var d DataInDB
 	dbs := db.Where("url = ?", url).First(&d)
 	if dbs.Error != nil {
+		if dbs.RecordNotFound() {
+			return d, 1, dbs.Error // record not found
+		}
 		fmt.Println(dbs.Error)
-		return d, false
+		return d, 3, dbs.Error // error while querying
 	}
-	return d, true
+	return d, 2, nil // record found
+}
+
+// FetchURLInfoBasedOnID function to get the data from db if it exists in db
+func FetchURLInfoBasedOnID(db *gorm.DB, id string) (DataInDB, int, error) {
+	var d DataInDB
+	dbs := db.Where("uuid = ?", id).First(&d)
+	if dbs.Error != nil {
+		if dbs.RecordNotFound() {
+			return d, 1, dbs.Error // record not found
+		}
+		fmt.Println(dbs.Error)
+		return d, 3, dbs.Error // error while querying
+	}
+	return d, 2, nil // record found
 }
 
 // InsertURLInfo to insert data in DB
@@ -93,16 +110,16 @@ func InsertURLInfo(db *gorm.DB, d DataInDB) error {
 }
 
 // UpdateFailureCount function to update failure count
-func UpdateFailureCount(db *gorm.DB, url string, failureCount int) error {
+func UpdateFailureCount(db *gorm.DB, url string) error {
 	var d DataInDB
-	dbufc := db.Model(&d).Where("url = ?", url).Update("failure_count", failureCount)
+	dbufc := db.Model(&d).Where("url = ?", url).Update("failure_count", gorm.Expr("failure_count + ?", 1))
 	// updateQuery := fmt.Sprintf(`UPDATE ums SET %s = %d WHERE url = "%s";`, "failure_count", failureCount, url)
 	// err := UpdateURLInfo(db, updateQuery)
 	return dbufc.Error
 }
 
-// UpdateParams function to update following columns: ["crawl_timeout", "frequency", "failure_threshold"]
-func UpdateParams(db *gorm.DB, url string, m map[string]int) error {
+// UpdateParamsBasedOnURL function to update following columns: ["crawl_timeout", "frequency", "failure_threshold"]
+func UpdateParamsBasedOnURL(db *gorm.DB, url string, m map[string]interface{}) error {
 	var d DataInDB
 	dbup := db.Model(&d).Where("url = ?", url).Updates(m)
 	// updateQuery := `UPDATE ums SET`
@@ -112,6 +129,20 @@ func UpdateParams(db *gorm.DB, url string, m map[string]int) error {
 	// updateQuery = updateQuery + fmt.Sprintf(` failure_count = 0 WHERE url = "%s";`, url)
 	// err := UpdateURLInfo(db, updateQuery)
 	return dbup.Error
+}
+
+// UpdateStatus function to update the status of the URL
+func UpdateStatus(db *gorm.DB, url string, status string) error {
+	var d DataInDB
+	dbus := db.Model(&d).Where("url = ?", url).Update("status", status)
+	return dbus.Error
+}
+
+// DeleteEntry function to delete the entry in database
+func DeleteEntry(db *gorm.DB, url string) error {
+	var d DataInDB
+	dbd := db.Where("url = ?", url).Delete(&d)
+	return dbd.Error
 }
 
 // // UpdateServiceStatusUMS to update the status of the URL for UMS service checking
