@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+	// form := url.Values{}
+	// fmt.Println(reflect.TypeOf(form))
 
 	db, err := gorm.Open("mysql", "root:Anish@6030@tcp(127.0.0.1:3306)/test_database?charset=utf8&parseTime=True")
 
@@ -31,13 +33,21 @@ func main() {
 	var lock = sync.RWMutex{}
 	// platform.LockTest(channelMap, &lock)
 	// fmt.Println(channelMap)
+	router := SetupRouter(db, channelMap, &lock)
+	router.Run()
 
+}
+
+// SetupRouter method to setup the router
+func SetupRouter(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMutex) *gin.Engine {
 	r := gin.Default()
-	r.POST("/url", handler.GetURLStatus(db, channelMap, &lock))
-	r.POST("/urls/:id/deactivate", handler.DeactivateURL(db, channelMap, &lock))
-	r.POST("/urls/:id/activate", handler.ActivateURL(db, channelMap, &lock))
-	r.DELETE("/urls/:id", handler.DeleteURL(db, channelMap, &lock))
-	r.PATCH("/urls/:id", handler.UpdateParams(db, channelMap, &lock))
+	r.POST("/url", handler.CreateURLEntry(db, channelMap, lock))
+	r.POST("/urls/:id/deactivate", handler.DeactivateURL(db, channelMap, lock))
+	r.POST("/urls/:id/activate", handler.ActivateURL(db, channelMap, lock))
+	r.DELETE("/urls/:id", handler.DeleteURL(db, channelMap, lock)) // soft delete
+	r.PATCH("/urls/:id", handler.UpdateParams(db, channelMap, lock))
+	r.GET("/urls/:id", handler.GetURLInfo(db))
 
 	r.Run()
+	return r
 }

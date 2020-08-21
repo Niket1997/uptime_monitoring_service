@@ -14,5 +14,6 @@ require (
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/satori/go.uuid v1.2.0
+	github.com/stretchr/testify v1.4.0
 	golang.org/x/sys v0.0.0-20200817155316-9781c653f443 // indirect
 )

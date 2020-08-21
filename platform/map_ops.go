@@ -9,7 +9,7 @@ import (
 func AddChanToChanMap(url string, channelMap map[string]chan bool, lock *sync.RWMutex, channel chan bool) {
 	lock.Lock()
 	defer lock.Unlock()
-	channelMap[url] = channel
+	channelMap[url] = channel // block channelwise access
 	fmt.Println("Added channel for ", url)
 }
 

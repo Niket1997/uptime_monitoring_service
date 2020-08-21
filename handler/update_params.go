@@ -52,7 +52,7 @@ func UpdateParams(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMut
 				}
 				channel <- true
 				found = platform.DeleteChanFromChannelMap(d.URL, channelMap, lock)
-				fmt.Println("\n\n", channelMap, "\n\n")
+				// fmt.Println("\n\n", channelMap, "\n\n")
 				if !found {
 					c.JSON(500, gin.H{
 						"status": fmt.Sprintf("URL %s was active & couldn't delete the channel.", d.URL),
@@ -60,7 +60,7 @@ func UpdateParams(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMut
 					return
 				}
 			}
-			m := make(map[string]interface{})
+			m := make(map[string]int)
 			if requestBody.CrawlTimeout != 0 {
 				m["crawl_timeout"] = requestBody.CrawlTimeout
 			}
@@ -71,7 +71,6 @@ func UpdateParams(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMut
 				m["failure_threshold"] = requestBody.FailureThreshold
 			}
 			m["failure_count"] = 0
-			m["status"] = "Active"
 			err = dbops.UpdateParamsBasedOnURL(db, d.URL, m)
 			if err != nil {
 				c.JSON(500, gin.H{
@@ -79,6 +78,14 @@ func UpdateParams(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMut
 				})
 				return
 			}
+			err = dbops.UpdateStatus(db, d.URL, "Active")
+			if err != nil {
+				c.JSON(500, gin.H{
+					"error": fmt.Sprintf("Couldn't update database for %s. %s", d.URL, err.Error()),
+				})
+				return
+			}
+			d, _, _ = dbops.FetchURLInfoBasedOnID(db, id)
 			ticker := time.NewTicker(time.Duration(d.Frequency*1000) * time.Millisecond)
 			channel := make(chan bool)
 			platform.AddChanToChanMap(d.URL, channelMap, lock, channel)
@@ -87,7 +94,6 @@ func UpdateParams(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMut
 				"status": fmt.Sprintf("The URL %s is updated & started crawling again.", d.URL),
 			})
 			return
-
 		}
 	}
 }

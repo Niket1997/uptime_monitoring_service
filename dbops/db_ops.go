@@ -119,7 +119,7 @@ func UpdateFailureCount(db *gorm.DB, url string) error {
 }
 
 // UpdateParamsBasedOnURL function to update following columns: ["crawl_timeout", "frequency", "failure_threshold"]
-func UpdateParamsBasedOnURL(db *gorm.DB, url string, m map[string]interface{}) error {
+func UpdateParamsBasedOnURL(db *gorm.DB, url string, m map[string]int) error {
 	var d DataInDB
 	dbup := db.Model(&d).Where("url = ?", url).Updates(m)
 	// updateQuery := `UPDATE ums SET`

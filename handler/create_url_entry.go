@@ -20,8 +20,8 @@ type FormInputURLStatus struct {
 	FailureThreshold int    `form:"failure_threshold" binding:"required"`
 }
 
-// GetURLStatus function to get the status of the URL
-func GetURLStatus(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMutex) gin.HandlerFunc {
+// CreateURLEntry function to get the status of the URL
+func CreateURLEntry(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMutex) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestBody := FormInputURLStatus{}
 		err := c.ShouldBind(&requestBody)
@@ -32,9 +32,10 @@ func GetURLStatus(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMut
 			timeout := requestBody.CrawlTimeout
 			frequency := requestBody.Frequency
 			failureThreshold := requestBody.FailureThreshold
+			// add validations
 
 			d, re, err := dbops.FetchURLInfoBasedOnURL(db, url)
-
+			// there is no need of re
 			if re == 3 {
 				c.JSON(500, gin.H{
 					"status": "Error while querying the data in database for existing entry.",
@@ -44,6 +45,7 @@ func GetURLStatus(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMut
 			}
 			createGoRoutine := false
 			if re == 1 {
+				// gorm callbacks (won't have to write)
 				id, err := uuid.NewV1()
 				if err != nil {
 					c.JSON(500, gin.H{
@@ -58,7 +60,7 @@ func GetURLStatus(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMut
 					CrawlTimeout:     timeout,
 					Frequency:        frequency,
 					FailureThreshold: failureThreshold,
-					Status:           "Active",
+					Status:           "Active", // enum
 					FailureCount:     0,
 				}
 				err = dbops.InsertURLInfo(db, d)
