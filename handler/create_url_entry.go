@@ -2,14 +2,13 @@ package handler
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
+	"github.com/jinzhu/gorm"
 	"sync"
 	"time"
 	"ums/dbops"
 	"ums/platform"
-
-	"github.com/gin-gonic/gin"
-	"github.com/gofrs/uuid"
-	"github.com/jinzhu/gorm"
 )
 
 // FormInputURLStatus structure to get input from form

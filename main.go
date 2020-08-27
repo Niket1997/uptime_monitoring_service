@@ -1,14 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 	"sync"
 	"ums/apperrors"
 	"ums/dbops"
 	"ums/handler"
-
-	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
 )
 
 func main() {
@@ -29,25 +29,38 @@ func main() {
 	// ChannelMap variable to hold map of channels
 	channelMap := make(map[string]chan bool)
 
-	// Lock variable
+	//Lock variable
 	var lock = sync.RWMutex{}
-	// platform.LockTest(channelMap, &lock)
-	// fmt.Println(channelMap)
+	//platform.LockTest(channelMap, &lock)
+	fmt.Println(channelMap)
 	router := SetupRouter(db, channelMap, &lock)
 	router.Run()
 
 }
 
-// SetupRouter method to setup the router
+// SetupRouter Method to setup the router
+//func SetupRouter() *gin.Engine {
+//	r := gin.Default()
+//	r.POST("/url", handler.CreateURLEntry())
+//	r.GET("/ping", pingEndpoint)
+//	return r
+//}
+
+func pingEndpoint(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"message": "pong",
+	})
+}
+
+//// SetupRouter method to setup the router
 func SetupRouter(db *gorm.DB, channelMap map[string]chan bool, lock *sync.RWMutex) *gin.Engine {
 	r := gin.Default()
+	r.GET("/ping", pingEndpoint)
 	r.POST("/url", handler.CreateURLEntry(db, channelMap, lock))
 	r.POST("/urls/:id/deactivate", handler.DeactivateURL(db, channelMap, lock))
 	r.POST("/urls/:id/activate", handler.ActivateURL(db, channelMap, lock))
 	r.DELETE("/urls/:id", handler.DeleteURL(db, channelMap, lock)) // soft delete
 	r.PATCH("/urls/:id", handler.UpdateParams(db, channelMap, lock))
 	r.GET("/urls/:id", handler.GetURLInfo(db))
-
-	r.Run()
 	return r
 }
