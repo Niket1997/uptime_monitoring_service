@@ -5,20 +5,22 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"os"
 	"sync"
-	"ums/apperrors"
 	"ums/dbops"
 	"ums/handler"
 )
 
 func main() {
-	// form := url.Values{}
-	// fmt.Println(reflect.TypeOf(form))
+	host := "localhost"
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		host = "host.docker.internal"
+	}
 
-	db, err := gorm.Open("mysql", "root:Anish@6030@tcp(127.0.0.1:3306)/test_database?charset=utf8&parseTime=True")
+	db, err := gorm.Open("mysql", fmt.Sprintf("root:Anish@6030@tcp(%s:3306)/test_database?charset=utf8&parseTime=True", host))
 
 	if err != nil {
-		apperrors.ReturnError("Couldn't create database connection.", err)
+		fmt.Println("database connection failed")
 		return
 	}
 	defer db.Close()
@@ -34,7 +36,10 @@ func main() {
 	//platform.LockTest(channelMap, &lock)
 	fmt.Println(channelMap)
 	router := SetupRouter(db, channelMap, &lock)
-	router.Run()
+	err = router.Run()
+	if err != nil {
+		fmt.Println("error occur")
+	}
 
 }
 
